@@ -3,30 +3,27 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-    paths:
-      - 'web/**'
-      - 'data/sample_graph.json'
-      - '.github/workflows/deploy.yml'
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
         working-directory: ./web
         run: npm install
 
-      - name: Copy sample graph as fallback
+      - name: Copy graph.json if missing
         run: |
           mkdir -p web/public
           if [ ! -f web/public/graph.json ]; then
@@ -42,3 +39,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./web/dist
+          force_orphan: true
