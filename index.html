@@ -3,406 +3,316 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>os-anime</title>
+  <title>os-anime | Character Constellation</title>
+  <meta name="description" content="3D anime character similarity graph — AI-discovered connections across 20+ series" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
-    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-    html,body{width:100%;height:100%;background:#06060c;overflow:hidden;font-family:'Inter',sans-serif;color:#fff}
-    #graph{width:100vw;height:100vh;cursor:grab}
-    #graph:active{cursor:grabbing}
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; background: #050508; overflow: hidden; font-family: 'Inter', sans-serif; color: #fff; }
+    #graph { width: 100vw; height: 100vh; }
 
-    /* ── top bar ── */
-    #top{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;
-      gap:14px;padding:16px 24px;
-      background:linear-gradient(180deg,rgba(6,6,12,.98) 0%,transparent 100%);
-      pointer-events:none}
-    #top>*{pointer-events:all}
-    #logo{font-size:15px;font-weight:600;letter-spacing:.06em;color:#fff;opacity:.9;flex-shrink:0}
-    #stat{font-size:11px;color:#2a2a3a;margin-left:auto;flex-shrink:0;letter-spacing:.03em}
+    #top-bar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+      display: flex; align-items: center; gap: 16px; padding: 14px 24px;
+      background: linear-gradient(to bottom, rgba(5,5,8,0.97) 0%, transparent 100%);
+      pointer-events: none;
+    }
+    #top-bar > * { pointer-events: all; }
+    #logo { font-size: 17px; font-weight: 700; letter-spacing: 0.04em; flex-shrink: 0; }
+    #stat { font-size: 11px; color: #444; margin-left: auto; flex-shrink: 0; }
 
-    /* ── search ── */
-    #sw{position:relative;flex:1;max-width:400px}
-    #sw input{width:100%;padding:8px 32px 8px 36px;border-radius:20px;
-      border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.04);
-      color:#ccc;font-size:12.5px;outline:none;font-family:inherit;transition:border-color .2s,background .2s}
-    #sw input:focus{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.07)}
-    #sw input::placeholder{color:#252535}
-    #si{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:12px;color:#333;pointer-events:none}
-    #sc{position:absolute;right:11px;top:50%;transform:translateY(-50%);
-      background:none;border:none;color:#333;font-size:11px;cursor:pointer;display:none;padding:2px}
-    #sc:hover{color:#888}
-    #sugs{position:absolute;top:calc(100% + 6px);left:0;right:0;
-      background:rgba(8,8,16,.98);border:1px solid rgba(255,255,255,.07);border-radius:10px;
-      list-style:none;overflow:hidden;z-index:60;box-shadow:0 12px 40px rgba(0,0,0,.7);display:none}
-    #sugs li{display:flex;align-items:center;gap:10px;padding:8px 13px;cursor:pointer;transition:background .1s}
-    #sugs li:hover{background:rgba(255,255,255,.04)}
-    #sugs li img{width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0}
-    .sn{font-size:12.5px;font-weight:500}.sg{margin-left:auto;color:#333;font-size:11px}
+    #search-wrap { position: relative; flex: 1; max-width: 440px; }
+    #search-wrap input {
+      width: 100%; padding: 9px 36px 9px 38px; border-radius: 24px;
+      border: 1px solid #1a1a2e; background: rgba(255,255,255,0.06);
+      color: #fff; font-size: 13px; outline: none; font-family: inherit;
+      transition: border-color .2s;
+    }
+    #search-wrap input:focus { border-color: #2a2a3e; background: rgba(255,255,255,0.09); }
+    #search-wrap input::placeholder { color: #383848; }
+    #search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 13px; pointer-events: none; }
+    #search-clear { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #555; font-size: 12px; cursor: pointer; display: none; }
+    #suggestions {
+      position: absolute; top: calc(100% + 8px); left: 0; right: 0;
+      background: rgba(8,8,14,0.98); border: 1px solid #1a1a2e; border-radius: 12px;
+      list-style: none; overflow: hidden; z-index: 50;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6); display: none;
+    }
+    #suggestions li { display: flex; align-items: center; gap: 10px; padding: 9px 14px; cursor: pointer; transition: background .12s; }
+    #suggestions li:hover { background: rgba(255,255,255,0.05); }
+    #suggestions li img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+    #suggestions li .sug-name { font-size: 13px; font-weight: 500; }
+    #suggestions li .sug-group { margin-left: auto; color: #444; font-size: 11px; }
 
-    /* ── left series panel ── */
-    #panel{position:fixed;left:0;top:0;bottom:0;width:200px;z-index:15;
-      background:rgba(6,6,12,.7);backdrop-filter:blur(24px);
-      border-right:1px solid rgba(255,255,255,.04);
-      padding:72px 0 24px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
-    #panel::-webkit-scrollbar{width:3px}
-    #panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
-    .series-row{display:flex;align-items:center;gap:10px;padding:7px 16px;
-      cursor:pointer;transition:background .15s;border-radius:0}
-    .series-row:hover{background:rgba(255,255,255,.04)}
-    .series-row.active{background:rgba(255,255,255,.07)}
-    .series-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;opacity:.7;transition:opacity .2s}
-    .series-row.active .series-dot{opacity:1}
-    .series-label{font-size:11.5px;color:#666;transition:color .2s;line-height:1.3;font-weight:400}
-    .series-row.active .series-label,.series-row:hover .series-label{color:#ccc}
-    #panel-title{padding:0 16px 10px;font-size:10px;font-weight:600;color:#222;text-transform:uppercase;letter-spacing:.1em}
-    #all-row{display:flex;align-items:center;gap:10px;padding:7px 16px 12px;
-      cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);margin-bottom:6px}
-    #all-row:hover .series-label,#all-row.active .series-label{color:#fff}
-    #all-dot{width:8px;height:8px;border-radius:50%;background:#fff;flex-shrink:0;opacity:.3}
-    #all-row.active #all-dot{opacity:1}
+    #filter-bar {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      z-index: 10; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+      max-width: 90vw; padding: 0 16px;
+    }
+    .pill {
+      padding: 5px 13px; border-radius: 20px; border: 1px solid #1e1e2e;
+      background: rgba(255,255,255,0.03); color: #666; font-size: 11px;
+      cursor: pointer; transition: all .2s; white-space: nowrap; font-family: inherit;
+    }
+    .pill:hover { border-color: #444; color: #ccc; }
+    .pill.active {
+      background: rgba(255,255,255,0.1); color: #fff;
+      border-color: var(--c, #fff);
+      box-shadow: 0 0 10px var(--c, rgba(255,255,255,.2));
+    }
 
-    /* ── sidebar ── */
-    #sb{position:fixed;top:0;right:0;bottom:0;width:310px;z-index:30;
-      background:rgba(6,6,12,.92);backdrop-filter:blur(28px);
-      border-left:1px solid rgba(255,255,255,.05);
-      padding:22px 20px;overflow-y:auto;
-      display:none;flex-direction:column;gap:14px}
-    #sb.open{display:flex;animation:sbin .2s ease}
-    @keyframes sbin{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-    #sb-close{align-self:flex-end;background:none;border:none;color:#333;font-size:15px;
-      cursor:pointer;padding:3px 6px;border-radius:4px;line-height:1;transition:color .15s}
-    #sb-close:hover{color:#aaa}
-    #sb-img{width:100%;border-radius:10px;object-fit:cover;max-height:190px;display:none;
-      border:1px solid rgba(255,255,255,.06)}
-    #sb-glow{position:absolute;top:0;right:0;width:310px;height:200px;pointer-events:none;
-      opacity:.12;filter:blur(60px)}
-    #sb-name{font-size:20px;font-weight:600;line-height:1.2}
-    #sb-series{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;opacity:.5;margin-top:-6px}
-    #sb-role-badge{display:inline-block;padding:2px 9px;border-radius:8px;
-      font-size:10px;font-weight:600;background:rgba(255,255,255,.06);color:#666;width:fit-content}
-    #sb-fav{font-size:11.5px;color:#333}
-    #sb-bio{font-size:12.5px;line-height:1.7;color:#888}
-    #sb-rel-title{font-size:10px;font-weight:600;color:#252535;
-      text-transform:uppercase;letter-spacing:.1em;padding-top:4px;
-      border-top:1px solid rgba(255,255,255,.04)}
-    .ri{display:flex;align-items:center;gap:10px;padding:7px 0;
-      border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer;transition:opacity .15s}
-    .ri:hover{opacity:.8}
-    .ri img{width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0}
-    .ri-no-img{width:32px;height:32px;border-radius:50%;flex-shrink:0;opacity:.3}
-    .rin{font-size:12.5px;font-weight:500}.rig{color:#333;font-size:10.5px}
-    .sim-col{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:48px}
-    .sim-track{width:48px;height:2px;background:rgba(255,255,255,.06);border-radius:1px}
-    .sim-fill{height:2px;border-radius:1px;opacity:.7}
-    .sim-pct{font-size:9.5px;color:#2a2a3a}
+    #sidebar {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 300px; z-index: 20;
+      background: rgba(5,5,8,0.95); backdrop-filter: blur(20px);
+      border-left: 1px solid #0f0f1a; padding: 20px 18px;
+      overflow-y: auto; display: none; flex-direction: column; gap: 12px;
+      animation: slideIn .22s ease;
+    }
+    #sidebar.open { display: flex; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    #sidebar-close { align-self: flex-end; background: none; border: none; color: #444; font-size: 16px; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+    #sidebar-close:hover { color: #fff; }
+    #sidebar-img { width: 100%; border-radius: 8px; object-fit: cover; max-height: 180px; display: none; }
+    #sidebar-name { font-size: 19px; font-weight: 700; line-height: 1.25; }
+    #sidebar-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .badge-series { color: #000; }
+    .badge-role { background: #1a1a2e; color: #888; }
+    #sidebar-fav { font-size: 12px; color: #666; }
+    #sidebar-bio { font-size: 12.5px; line-height: 1.65; color: #bbb; }
+    #related-title { font-size: 11px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: .08em; }
+    .related-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #0f0f1a; }
+    .related-item img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .ri-name { font-size: 12.5px; font-weight: 500; }
+    .ri-group { color: #444; font-size: 11px; }
+    .sim-wrap { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; min-width: 52px; }
+    .sim-bar { height: 3px; border-radius: 2px; opacity: .75; }
+    .sim-pct { font-size: 10px; color: #555; }
 
-    /* ── loading ── */
-    #ld{position:fixed;inset:0;display:flex;flex-direction:column;
-      align-items:center;justify-content:center;background:#06060c;
-      z-index:200;gap:18px;color:#1e1e2e;font-size:12px;letter-spacing:.08em}
-    .sp{width:32px;height:32px;border:1.5px solid #0f0f1e;
-      border-top-color:rgba(255,255,255,.2);border-radius:50%;
-      animation:spin .8s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
-
-    /* ── tooltip ── */
-    #tip{position:fixed;pointer-events:none;z-index:50;background:rgba(8,8,16,.95);
-      border:1px solid rgba(255,255,255,.08);border-radius:8px;
-      padding:7px 12px;font-size:12px;color:#ccc;white-space:nowrap;
-      opacity:0;transition:opacity .15s;box-shadow:0 4px 20px rgba(0,0,0,.5)}
-    #tip .tip-group{font-size:10.5px;color:#444;margin-top:1px}
+    #loading {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; background: #050508;
+      z-index: 100; gap: 16px; color: #555; font-size: 13px; letter-spacing: .05em;
+    }
+    .spinner {
+      width: 36px; height: 36px; border: 2px solid #1a1a2e;
+      border-top-color: rgba(255,255,255,.3); border-radius: 50%;
+      animation: spin .9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-<div id="ld"><div class="sp"></div><span>Loading constellation</span></div>
-<div id="tip"><div id="tip-name"></div><div class="tip-group" id="tip-group"></div></div>
+<div id="loading"><div class="spinner"></div><span>Loading constellation...</span></div>
+
 <div id="graph"></div>
 
-<!-- top bar -->
-<div id="top">
-  <div id="logo">os-anime</div>
-  <div id="sw">
-    <span id="si">&#9672;</span>
-    <input id="si2" placeholder="Search characters..." autocomplete="off" />
-    <button id="sc">&#x2715;</button>
-    <ul id="sugs"></ul>
+<div id="top-bar">
+  <div id="logo">&#127756; os-anime</div>
+  <div id="search-wrap">
+    <span id="search-icon">&#128269;</span>
+    <input id="search-input" placeholder="Search a character, trait, or power..." autocomplete="off" />
+    <button id="search-clear">&#x2715;</button>
+    <ul id="suggestions"></ul>
   </div>
   <div id="stat"></div>
 </div>
 
-<!-- left panel -->
-<div id="panel">
-  <div id="panel-title">Series</div>
-  <div id="all-row">
-    <div id="all-dot"></div>
-    <span class="series-label">All series</span>
+<div id="filter-bar"></div>
+
+<div id="sidebar">
+  <button id="sidebar-close">&#x2715;</button>
+  <img id="sidebar-img" alt="" />
+  <div id="sidebar-name"></div>
+  <div id="sidebar-badges"></div>
+  <div id="sidebar-fav"></div>
+  <div id="sidebar-bio"></div>
+  <div id="related-section" style="display:none">
+    <div id="related-title">Most Similar Characters</div>
+    <div id="related-list"></div>
   </div>
 </div>
 
-<!-- sidebar -->
-<div id="sb">
-  <button id="sb-close">&#x2715;</button>
-  <img id="sb-img" alt="" />
-  <div id="sb-name"></div>
-  <div id="sb-series"></div>
-  <div id="sb-role-badge"></div>
-  <div id="sb-fav"></div>
-  <div id="sb-bio"></div>
-  <div id="sb-rel-section" style="display:none;gap:10px;flex-direction:column">
-    <div id="sb-rel-title">Connected characters</div>
-    <div id="sb-rel-list"></div>
-  </div>
-</div>
-
-<script src="https://unpkg.com/three@0.165.0/build/three.min.js"></script>
 <script src="https://unpkg.com/3d-force-graph@1"></script>
 
 <script>
-(async()=>{
+(async () => {
   let data;
-  try{ const r=await fetch('graph.json'); data=await r.json(); }
-  catch(e){
-    document.getElementById('ld').innerHTML='<p style="color:#c0392b;font-size:13px">Could not load graph.json</p>';
+  try {
+    const r = await fetch('graph.json');
+    data = await r.json();
+  } catch(e) {
+    document.getElementById('loading').innerHTML = '<p style="color:#c0392b">Failed to load graph.json</p>';
     return;
   }
 
-  const allNodes=data.nodes, allLinks=data.links;
-  document.getElementById('stat').textContent=`${allNodes.length}\u00a0characters\u00b7${allLinks.length}\u00a0connections`;
+  const allNodes = data.nodes;
+  const allLinks = data.links;
 
-  // ── series panel ──
-  const panel=document.getElementById('panel');
-  const groups=[...new Set(allNodes.map(n=>n.group))].sort();
-  let activeGroup=null, highlightIds=new Set(), hoveredNode=null;
+  document.getElementById('stat').textContent = `${allNodes.length} characters \u00b7 ${allLinks.length} connections`;
 
-  const allRow=document.getElementById('all-row');
-  allRow.classList.add('active');
-  allRow.onclick=()=>setGroup(null);
+  let activeGroup = null;
+  let highlightIds = new Set();
 
-  groups.forEach(g=>{
-    const color=allNodes.find(n=>n.group===g)?.color||'#fff';
-    const row=document.createElement('div');
-    row.className='series-row'; row.dataset.group=g;
-    row.innerHTML=`<div class="series-dot" style="background:${color}"></div><span class="series-label">${g}</span>`;
-    row.onclick=()=>setGroup(g===activeGroup?null:g);
-    panel.appendChild(row);
+  const groups = [...new Set(allNodes.map(n => n.group))].sort();
+
+  const filterBar = document.getElementById('filter-bar');
+  const allPill = document.createElement('button');
+  allPill.className = 'pill active'; allPill.textContent = 'All';
+  allPill.onclick = () => setGroup(null);
+  filterBar.appendChild(allPill);
+
+  groups.forEach(g => {
+    const color = allNodes.find(n => n.group === g)?.color || '#fff';
+    const btn = document.createElement('button');
+    btn.className = 'pill'; btn.textContent = g;
+    btn.style.setProperty('--c', color);
+    btn.dataset.group = g;
+    btn.onclick = () => setGroup(g === activeGroup ? null : g);
+    filterBar.appendChild(btn);
   });
 
-  function setGroup(g){
-    activeGroup=g;
-    allRow.classList.toggle('active',!g);
-    document.querySelectorAll('.series-row').forEach(r=>{
-      r.classList.toggle('active',r.dataset.group===g);
+  function setGroup(g) {
+    activeGroup = g;
+    document.querySelectorAll('.pill').forEach(p => {
+      p.classList.toggle('active', g === null ? p === allPill : p.dataset.group === g);
     });
-    Graph.graphData(getVisible());
+    refreshGraph();
   }
 
-  function getVisible(){
-    if(!activeGroup) return{nodes:allNodes,links:allLinks};
-    const ids=new Set(allNodes.filter(n=>n.group===activeGroup).map(n=>n.id));
-    return{
-      nodes:allNodes.filter(n=>ids.has(n.id)),
-      links:allLinks.filter(l=>{
-        const s=typeof l.source==='object'?l.source.id:l.source;
-        const t=typeof l.target==='object'?l.target.id:l.target;
-        return ids.has(s)&&ids.has(t);
+  function getVisibleData() {
+    if (!activeGroup) return { nodes: allNodes, links: allLinks };
+    const ids = new Set(allNodes.filter(n => n.group === activeGroup).map(n => n.id));
+    return {
+      nodes: allNodes.filter(n => ids.has(n.id)),
+      links: allLinks.filter(l => {
+        const s = typeof l.source === 'object' ? l.source.id : l.source;
+        const t = typeof l.target === 'object' ? l.target.id : l.target;
+        return ids.has(s) && ids.has(t);
       })
     };
   }
 
-  // ── tooltip ──
-  const tip=document.getElementById('tip');
-  document.addEventListener('mousemove',e=>{
-    tip.style.left=(e.clientX+14)+'px';
-    tip.style.top=(e.clientY-10)+'px';
-  });
+  const Graph = ForceGraph3D()(document.getElementById('graph'))
+    .backgroundColor('#050508')
+    .nodeLabel(n => `${n.name} (${n.group})`)
+    .nodeColor(n => highlightIds.size > 0 && !highlightIds.has(n.id) ? '#111' : (n.color || '#fff'))
+    .nodeVal(n => {
+      const base = n.role === 'Main' ? 5 : 3;
+      return highlightIds.has(n.id) ? base * 2.5 : base;
+    })
+    .nodeOpacity(0.92)
+    .linkColor(l => `rgba(255,255,255,${Math.min(0.35,(l.value||0.1)*0.8)})`)
+    .linkWidth(l => (l.value||0.1) * 2.5)
+    .linkDirectionalParticles(2)
+    .linkDirectionalParticleSpeed(0.003)
+    .linkDirectionalParticleWidth(1.2)
+    .onNodeClick(node => openSidebar(node))
+    .onEngineStop(() => Graph.zoomToFit(400, 80));
 
-  // ── custom node renderer ──
-  function makeNodeObj(node){
-    const grp=new THREE.Group();
-    const dimmed=highlightIds.size>0&&!highlightIds.has(node.id);
-    const highlighted=highlightIds.has(node.id);
-    const hovered=hoveredNode?.id===node.id;
-    const isMain=node.role==='Main';
-    const baseR=isMain?4.5:2.8;
-    const r=highlighted||hovered?baseR*1.7:baseR;
-    const col=new THREE.Color(dimmed?'#0e0e18':(node.color||'#ffffff'));
-    const opacity=dimmed?0.08:0.9;
-
-    // core sphere
-    const geo=new THREE.SphereGeometry(r,16,16);
-    const mat=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity});
-    grp.add(new THREE.Mesh(geo,mat));
-
-    // glow halo — larger translucent sphere
-    if(!dimmed){
-      const haloR=r*2.2;
-      const haloGeo=new THREE.SphereGeometry(haloR,16,16);
-      const haloMat=new THREE.MeshBasicMaterial({
-        color:col,transparent:true,
-        opacity:(highlighted||hovered)?0.12:0.05
-      });
-      grp.add(new THREE.Mesh(haloGeo,haloMat));
-
-      // second outer glow
-      const glo2=new THREE.SphereGeometry(haloR*1.7,12,12);
-      const glo2m=new THREE.MeshBasicMaterial({
-        color:col,transparent:true,
-        opacity:(highlighted||hovered)?0.05:0.02
-      });
-      grp.add(new THREE.Mesh(glo2,glo2m));
-    }
-    return grp;
+  function refreshGraph() {
+    Graph.graphData(getVisibleData());
   }
 
-  // ── graph init ──
-  const Graph=ForceGraph3D()(document.getElementById('graph'))
-    .backgroundColor('#06060c')
-    .nodeThreeObject(makeNodeObj)
-    .nodeThreeObjectExtend(false)
-    .nodeLabel(()=>'')
-    .linkColor(l=>{
-      const v=l.value||0.1;
-      return `rgba(255,255,255,${(v*0.18).toFixed(3)})`;
-    })
-    .linkWidth(0.3)
-    .linkDirectionalParticles(l=>l.value>0.65?2:0)
-    .linkDirectionalParticleSpeed(0.002)
-    .linkDirectionalParticleWidth(0.8)
-    .linkDirectionalParticleColor(l=>l.source?.color||l.target?.color||'#fff')
-    .onNodeHover(node=>{
-      hoveredNode=node;
-      Graph.nodeThreeObject(makeNodeObj);
-      if(node){
-        document.getElementById('tip-name').textContent=node.name;
-        document.getElementById('tip-group').textContent=node.group;
-        tip.style.opacity='1';
-        document.getElementById('graph').style.cursor='pointer';
-      } else {
-        tip.style.opacity='0';
-        document.getElementById('graph').style.cursor='grab';
-      }
-    })
-    .onNodeClick(node=>openSidebar(node))
-    .onEngineStop(()=>{
-      Graph.zoomToFit(600,120);
-      // slow auto-rotate
-      let angle=0;
-      setInterval(()=>{
-        if(hoveredNode||document.getElementById('sb').classList.contains('open')) return;
-        angle+=0.0003;
-        const dist=Graph.camera().position.length();
-        Graph.cameraPosition({
-          x:dist*Math.sin(angle),
-          z:dist*Math.cos(angle)
-        });
-      },16);
-    });
+  refreshGraph();
+  document.getElementById('loading').style.display = 'none';
 
-  // star field
-  (()=>{
-    const scene=Graph.scene();
-    const starGeo=new THREE.BufferGeometry();
-    const count=1800;
-    const pos=new Float32Array(count*3);
-    for(let i=0;i<count*3;i++) pos[i]=(Math.random()-0.5)*2000;
-    starGeo.setAttribute('position',new THREE.BufferAttribute(pos,3));
-    const starMat=new THREE.PointsMaterial({color:0xffffff,size:0.6,transparent:true,opacity:0.35});
-    scene.add(new THREE.Points(starGeo,starMat));
-  })();
-
-  Graph.graphData(getVisible());
-  document.getElementById('ld').style.display='none';
-
-  // ── sidebar ──
-  function openSidebar(node){
-    if(!node) return;
-    const sb=document.getElementById('sb');
+  function openSidebar(node) {
+    const sb = document.getElementById('sidebar');
     sb.classList.add('open');
 
-    const img=document.getElementById('sb-img');
-    if(node.img){img.src=node.img;img.style.display='block';}
-    else img.style.display='none';
+    const img = document.getElementById('sidebar-img');
+    if (node.img) { img.src = node.img; img.style.display = 'block'; }
+    else { img.style.display = 'none'; }
 
-    document.getElementById('sb-name').textContent=node.name;
-    document.getElementById('sb-name').style.color=node.color||'#fff';
-    document.getElementById('sb-series').textContent=node.group;
-    document.getElementById('sb-series').style.color=node.color||'#fff';
-    document.getElementById('sb-role-badge').textContent=node.role||'';
-    document.getElementById('sb-fav').textContent=
-      node.favorites>0?`${node.favorites.toLocaleString()} MAL favorites`:'';
-    document.getElementById('sb-bio').textContent=node.bio||'';
+    document.getElementById('sidebar-name').textContent = node.name;
+    document.getElementById('sidebar-name').style.color = node.color || '#fff';
 
-    // related
-    const links=Graph.graphData().links;
-    const edgeMap={};
-    links.forEach(l=>{
-      const s=typeof l.source==='object'?l.source.id:l.source;
-      const t=typeof l.target==='object'?l.target.id:l.target;
-      if(s===node.id) edgeMap[t]=l.value;
-      if(t===node.id) edgeMap[s]=l.value;
+    const badges = document.getElementById('sidebar-badges');
+    badges.innerHTML = `<span class="badge badge-series" style="background:${node.color||'#555'}">${node.group}</span>`
+      + (node.role ? `<span class="badge badge-role">${node.role}</span>` : '');
+
+    document.getElementById('sidebar-fav').textContent =
+      node.favorites > 0 ? `\u2764\ufe0f ${node.favorites.toLocaleString()} favorites on MAL` : '';
+    document.getElementById('sidebar-bio').textContent = node.bio || '';
+
+    const links = Graph.graphData().links;
+    const edgeMap = {};
+    links.forEach(l => {
+      const s = typeof l.source === 'object' ? l.source.id : l.source;
+      const t = typeof l.target === 'object' ? l.target.id : l.target;
+      if (s === node.id) edgeMap[t] = l.value;
+      if (t === node.id) edgeMap[s] = l.value;
     });
-    const related=allNodes.filter(n=>edgeMap[n.id]!==undefined)
-      .sort((a,b)=>(edgeMap[b.id]||0)-(edgeMap[a.id]||0)).slice(0,6);
+    const related = allNodes
+      .filter(n => edgeMap[n.id] !== undefined)
+      .sort((a,b) => (edgeMap[b.id]||0) - (edgeMap[a.id]||0))
+      .slice(0,6);
 
-    const rlist=document.getElementById('sb-rel-list');
-    rlist.innerHTML='';
-    const rsect=document.getElementById('sb-rel-section');
-    if(related.length){
-      rsect.style.display='flex';
-      related.forEach(r=>{
-        const pct=Math.round((edgeMap[r.id]||0)*100);
-        const d=document.createElement('div'); d.className='ri';
-        d.innerHTML=(r.img
-          ?`<img src="${r.img}" alt="" />`
-          :`<div class="ri-no-img" style="background:${r.color||'#333'}"></div>`)
-          +`<div><div class="rin" style="color:${r.color||'#fff'}">${r.name}</div><div class="rig">${r.group}</div></div>`
-          +`<div class="sim-col"><div class="sim-track"><div class="sim-fill" style="width:${pct}%;background:${r.color||'#fff'}"></div></div><div class="sim-pct">${pct}%</div></div>`;
-        d.onclick=()=>openSidebar(r);
-        rlist.appendChild(d);
+    const list = document.getElementById('related-list');
+    list.innerHTML = '';
+    if (related.length) {
+      document.getElementById('related-section').style.display = 'block';
+      related.forEach(r => {
+        const pct = Math.round((edgeMap[r.id]||0)*100);
+        const div = document.createElement('div');
+        div.className = 'related-item';
+        div.innerHTML = (r.img ? `<img src="${r.img}" alt="" />` : '')
+          + `<div><div class="ri-name" style="color:${r.color||'#fff'}">${r.name}</div><div class="ri-group">${r.group}</div></div>`
+          + `<div class="sim-wrap"><div class="sim-bar" style="width:${pct}%;max-width:52px;background:${r.color||'#fff'}"></div><div class="sim-pct">${pct}%</div></div>`;
+        div.onclick = () => openSidebar(r);
+        list.appendChild(div);
       });
-    } else rsect.style.display='none';
+    } else {
+      document.getElementById('related-section').style.display = 'none';
+    }
 
     Graph.cameraPosition(
-      {x:node.x+50,y:node.y+25,z:node.z+50},node,1000
+      { x: node.x + 50, y: node.y + 30, z: node.z + 50 }, node, 1200
     );
   }
 
-  document.getElementById('sb-close').onclick=()=>
-    document.getElementById('sb').classList.remove('open');
+  document.getElementById('sidebar-close').onclick = () =>
+    document.getElementById('sidebar').classList.remove('open');
 
-  // ── search ──
-  const si2=document.getElementById('si2');
-  const sc=document.getElementById('sc');
-  const sugs=document.getElementById('sugs');
+  const searchInput = document.getElementById('search-input');
+  const searchClear = document.getElementById('search-clear');
+  const sugList = document.getElementById('suggestions');
 
-  si2.addEventListener('input',()=>{
-    const q=si2.value.trim().toLowerCase();
-    sc.style.display=q?'block':'none';
-    if(!q){highlightIds=new Set();sugs.style.display='none';Graph.nodeThreeObject(makeNodeObj);return;}
-    const matches=allNodes.filter(n=>
-      n.name.toLowerCase().includes(q)||(n.bio||'').toLowerCase().includes(q));
-    highlightIds=new Set(matches.map(n=>n.id));
-    Graph.nodeThreeObject(makeNodeObj);
-    sugs.innerHTML='';
-    matches.slice(0,6).forEach(n=>{
-      const li=document.createElement('li');
-      li.innerHTML=(n.img?`<img src="${n.img}" alt="" />`:`<div style="width:28px;height:28px;border-radius:50%;background:${n.color||'#333'};opacity:.4;flex-shrink:0"></div>`)
-        +`<span class="sn" style="color:${n.color||'#fff'}">${n.name}</span><span class="sg">${n.group}</span>`;
-      li.onmousedown=()=>{
-        si2.value=n.name; sugs.style.display='none';
-        highlightIds=new Set([n.id]); Graph.nodeThreeObject(makeNodeObj);
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim().toLowerCase();
+    searchClear.style.display = q ? 'block' : 'none';
+    if (!q) { highlightIds = new Set(); sugList.style.display = 'none'; refreshGraph(); return; }
+    const matches = allNodes.filter(n =>
+      n.name.toLowerCase().includes(q) || (n.bio||'').toLowerCase().includes(q)
+    );
+    highlightIds = new Set(matches.map(n => n.id));
+    refreshGraph();
+    sugList.innerHTML = '';
+    matches.slice(0,6).forEach(n => {
+      const li = document.createElement('li');
+      li.innerHTML = (n.img ? `<img src="${n.img}" alt="" />` : '')
+        + `<span class="sug-name" style="color:${n.color||'#fff'}">${n.name}</span>`
+        + `<span class="sug-group">${n.group}</span>`;
+      li.onmousedown = () => {
+        searchInput.value = n.name;
+        sugList.style.display = 'none';
+        highlightIds = new Set([n.id]);
+        refreshGraph();
         openSidebar(n);
       };
-      sugs.appendChild(li);
+      sugList.appendChild(li);
     });
-    sugs.style.display=matches.length?'block':'none';
+    sugList.style.display = matches.length ? 'block' : 'none';
   });
-  si2.addEventListener('blur',()=>setTimeout(()=>sugs.style.display='none',150));
-  sc.onclick=()=>{
-    si2.value='';highlightIds=new Set();sc.style.display='none';
-    sugs.style.display='none';Graph.nodeThreeObject(makeNodeObj);
+
+  searchInput.addEventListener('blur', () => setTimeout(() => sugList.style.display = 'none', 150));
+  searchClear.onclick = () => {
+    searchInput.value = ''; highlightIds = new Set();
+    searchClear.style.display = 'none'; sugList.style.display = 'none';
+    refreshGraph();
   };
 
 })();
