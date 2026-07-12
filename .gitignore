@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+venv/
+.venv/
+
+# Node
+node_modules/
+web/dist/
+
+# Generated raw data (large, re-generable)
+data/raw/
+
+# Keep graph.json tracked after generation
+# web/public/graph.json is NOT ignored
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,44 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'data/sample_graph.json'
+      - '.github/workflows/deploy.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./web
+        run: npm install
+
+      - name: Copy sample graph as fallback
+        run: |
+          mkdir -p web/public
+          if [ ! -f web/public/graph.json ]; then
+            cp data/sample_graph.json web/public/graph.json
+          fi
+
+      - name: Build
+        working-directory: ./web
+        run: npm run build
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./web/dist
